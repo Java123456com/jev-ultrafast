@@ -167,10 +167,17 @@ def browser_operation(request):
                 // than as a stale target the tick loop would retry forever.
                 e.focus();
                 const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;
+                const before=e.value;
                 setter.call(e, action.text);
+                if (!e.value) {
+                  // An invalid string clears the control. Restore what was
+                  // there and reject without firing input/change for a value
+                  // the field never accepted.
+                  setter.call(e, before);
+                  return {rejected:'not a valid '+e.type+' value'};
+                }
                 e.dispatchEvent(new Event('input',{bubbles:true}));
                 e.dispatchEvent(new Event('change',{bubbles:true}));
-                if (!e.value) return {rejected:'not a valid '+e.type+' value'};
                 return {x,y,filled:true};
               }
               return {x,y};

@@ -49,14 +49,20 @@
   // a billing "Street Address", or repeated rows each with a "Quantity") can be
   // told apart by the text model instead of producing identical prompts.
   const group = e => {
-    const scope=e.closest('fieldset,form,[role="group"],[role="dialog"],tr,li,[role="row"]');
-    if (!scope) return '';
-    const legend=scope.querySelector(':scope > legend');
-    const label=(legend?.textContent || scope.getAttribute('aria-label') || '').trim();
-    if (label) return label.slice(0,120);
-    // Table rows and list items rarely carry a label; their own text is what
-    // separates one repeated "Quantity" from the next.
-    if (scope.matches('tr,li,[role="row"]')) return (scope.innerText || '').trim().slice(0,120);
+    for (let scope=e.parentElement; scope; scope=scope.parentElement) {
+      if (!scope.matches('fieldset,form,[role="group"],[role="dialog"],tr,li,[role="row"]')) continue;
+      const legend=scope.querySelector(':scope > legend');
+      const ids=(scope.getAttribute('aria-labelledby')||'').split(/\s+/).filter(Boolean);
+      const fromIds=ids.map(id=>document.getElementById(id)?.textContent||'').join(' ').trim();
+      const label=(legend?.textContent || fromIds || scope.getAttribute('aria-label') || '').trim();
+      if (label) return label.slice(0,120);
+      // Rows and list items rarely carry a label; their own text is what
+      // separates one repeated "Quantity" from the next.
+      if (scope.matches('tr,li,[role="row"]')) {
+        const text=(scope.innerText || '').trim().slice(0,120);
+        if (text) return text;
+      }
+    }
     return '';
   };
   cache.pageKey=()=>[performance.timeOrigin,location.href,scrollX,scrollY,innerWidth,innerHeight,
