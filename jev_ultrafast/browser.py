@@ -156,12 +156,28 @@ def browser_operation(request):
                 e.dispatchEvent(new Event('input',{bubbles:true}));
                 e.dispatchEvent(new Event('change',{bubbles:true}));
               }
+              if (action.kind==='fill' && ['date','datetime-local','time','month','week'].includes((e.type||'').toLowerCase())) {
+                // Input.insertText does not commit into a native date/time
+                // control: the field looks filled and the form still submits
+                // empty. Set the value through JS and fire the events a real
+                // edit would, and let an invalid format fail loudly.
+                e.focus();
+                e.value=action.text;
+                e.dispatchEvent(new Event('input',{bubbles:true}));
+                e.dispatchEvent(new Event('change',{bubbles:true}));
+                if (!e.value) return null;
+                return {x,y,filled:true};
+              }
               return {x,y};
             })(""" + json.dumps(action) + ")")
             if target is None:
                 if kind == "select":
                     raise RuntimeError("Dropdown execution was not confirmed; inspect before retrying.")
                 raise StalePage("Target changed or is covered. Observe again.")
+            if target.get("filled"):
+                # Native date/time controls were committed through JS above;
+                # the click-and-type path would not change their value.
+                return {"executed": action["id"]}
             if kind != "select":
                 x, y = target["x"], target["y"]
                 for event in ("mousePressed", "mouseReleased"):

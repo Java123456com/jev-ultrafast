@@ -38,6 +38,10 @@
       if (e.type==='search') return 'searchbox';
       if (e.type==='number') return 'spinbutton';
       if (['text','email','url','tel'].includes(e.type)) return 'textbox';
+      // Native date/time controls are text-like for the policy: without a role
+      // they were dropped from the element table, so a form with a required
+      // date field could only ever be submitted with that field empty.
+      if (['date','datetime-local','time','month','week'].includes(e.type)) return 'textbox';
     }
     return null;
   };
