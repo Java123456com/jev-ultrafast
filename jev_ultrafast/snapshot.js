@@ -38,8 +38,21 @@
       if (e.type==='search') return 'searchbox';
       if (e.type==='number') return 'spinbutton';
       if (['text','email','url','tel'].includes(e.type)) return 'textbox';
+      // Native date/time controls are text-like for the policy: without a role
+      // they were dropped from the element table, so a form with a required
+      // date field could only ever be submitted with that field empty.
+      if (['date','datetime-local','time','month','week'].includes(e.type)) return 'textbox';
     }
     return null;
+  };
+  // Nearest grouping container, so identically-labelled fields (a shipping and
+  // a billing "Street Address", or repeated rows each with a "Quantity") can be
+  // told apart by the text model instead of producing identical prompts.
+  const group = e => {
+    const scope=e.closest('fieldset,form,[role="group"],[role="dialog"]');
+    if (!scope) return '';
+    const legend=scope.querySelector(':scope > legend');
+    return (legend?.textContent || scope.getAttribute('aria-label') || '').trim().slice(0,120);
   };
   cache.pageKey=()=>[performance.timeOrigin,location.href,scrollX,scrollY,innerWidth,innerHeight,
     [...document.querySelectorAll('input,textarea,select')].filter(safe)
@@ -58,7 +71,7 @@
     const r=e.getBoundingClientRect(), x=r.x+r.width/2, y=r.y+r.height/2, rname=role(e);
     if (!rname || r.width<=0 || r.height<=0 || x<0 || y<0 || x>=innerWidth || y>=innerHeight) continue;
     if (rname==='gridcell' && e.querySelector('button,[role="button"]')) continue;
-    const base={node:identity(e),role:rname,label:name(e)||rname,
+    const base={node:identity(e),role:rname,label:name(e)||rname,group:group(e),
       rect:{x:r.x,y:r.y,w:r.width,h:r.height}};
     for (const key of ['checked','selected','expanded']) {
       const value=e.getAttribute('aria-'+key);

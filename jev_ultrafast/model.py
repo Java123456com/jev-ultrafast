@@ -151,7 +151,10 @@ def choose(state, goal, history):
 def field_context(goal, action, page, history):
     return {
         "goal": goal,
-        "field": {k: action.get(k) for k in ("label", "role", "value")},
+        # `node` and `group` let the text model tell apart identically-labelled
+        # fields (shipping vs billing "Street Address", repeated "Quantity"
+        # rows) instead of producing identical completions for each of them.
+        "field": {k: action.get(k) for k in ("node", "label", "role", "value", "group")},
         "page": {"title": page["title"], "text": page["text"][:6000]},
         "recent_actions": [{k: h.get(k) for k in ("action", "text")} for h in history[-6:]],
     }
