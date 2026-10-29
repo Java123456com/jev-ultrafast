@@ -58,7 +58,10 @@ def action_space(actions):
         if node not in indices:
             index = str(len(elements) + 1)
             indices[node] = index
-            element = {k: action[k] for k in ("role", "value", "checked", "selected", "expanded") if k in action}
+            # `group` belongs in the target metadata too: selection happens
+            # before the text helper runs, so without it identically-labelled
+            # fields stay indistinguishable at this stage.
+            element = {k: action[k] for k in ("role", "value", "checked", "selected", "expanded", "group") if k in action}
             element.update(index=index, label=action["label"].split(" → ")[0], operations=[])
             if kind == "select":
                 element["value"] = action.get("current_value", "")
@@ -151,7 +154,10 @@ def choose(state, goal, history):
 def field_context(goal, action, page, history):
     return {
         "goal": goal,
-        "field": {k: action.get(k) for k in ("label", "role", "value")},
+        # `node` and `group` let the text model tell apart identically-labelled
+        # fields (shipping vs billing "Street Address", repeated "Quantity"
+        # rows) instead of producing identical completions for each of them.
+        "field": {k: action.get(k) for k in ("node", "label", "role", "value", "group")},
         "page": {"title": page["title"], "text": page["text"][:6000]},
         "recent_actions": [{k: h.get(k) for k in ("action", "text")} for h in history[-6:]],
     }
